@@ -1,6 +1,7 @@
 package chess.chesspiece;
 
 import java.util.ArrayList;
+import java.util.Map;
 
 import chess.ChessBoard;
 
@@ -26,10 +27,14 @@ public abstract class ChessPiece {
 
     /**
      * abstract method that should be overridden by every class that extends EmptyChessPiece
-     * @return a list of Points, the chess piece should be capable of going to each one of these Points
+     * @return a list of Points, the chess piece should be capable of attacking each of these positions
      */
-    public abstract ArrayList<Integer> generatePoints(int r, int c);
+    public abstract ArrayList<Integer> computeAttackingPositions(int r, int c);
 
+    public ArrayList<Integer> computeValidMoves(int r, int c)
+    {
+    	return computeAttackingPositions(r, c);
+    }
 
     /**
      * template method
@@ -43,7 +48,7 @@ public abstract class ChessPiece {
      */
     public boolean isValidMove(int r1, int c1, int r2, int c2)
     {
-        ArrayList<Integer> pointsPieceIsAbleToGoTo=this.generatePoints(r1, c1);
+        ArrayList<Integer> pointsPieceIsAbleToGoTo=this.computeAttackingPositions(r1, c1);
 
         int targetSquareNum = ChessBoard.convert_to_square_num(r2, c2);
         for(Integer validPosition : pointsPieceIsAbleToGoTo)
@@ -75,6 +80,11 @@ public abstract class ChessPiece {
     	 return color.getShorthand()+classSymbol;
     }
 
+    public String toStateString()
+    {
+    	 return color.getShorthand()+classSymbol;
+    }
+    
 	public ChessPieceColor getColor() {
 		return color;
 	}
@@ -87,6 +97,13 @@ public abstract class ChessPiece {
 		this.board = board;
 	}
 	
+	public boolean equals(Object o)
+	{
+		if(!(o instanceof ChessPiece))
+			return false;
+		ChessPiece other = (ChessPiece)o;
+		return color.equals(other.color) && other.getClass().equals(this.getClass());
+	}
 	
 	public static ArrayList<Integer> generateVerticalAndHortionzalMoves(ChessBoard board, ChessPieceColor color, int r, int c)
 	{
@@ -140,5 +157,11 @@ public abstract class ChessPiece {
 			return false;
 		}
 		return true;
+	}
+	
+	private static final Map<Boolean, String> booleanTagMap = Map.of(false, "", true,"*");
+	public static String booleanTag(boolean b)
+	{
+		return booleanTagMap.get(b);
 	}
 }

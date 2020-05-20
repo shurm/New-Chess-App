@@ -5,9 +5,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import ai.minimax.Board;
 import ai.minimax.MiniMax;
@@ -16,6 +18,7 @@ import chess.chesspiece.ChessPiece;
 import chess.chesspiece.ChessPieceColor;
 import chess.chesspiece.King;
 import chess.chesspiece.Knight;
+import chess.chesspiece.Pawn;
 import chess.chesspiece.Queen;
 import chess.chesspiece.Rook;
 
@@ -31,12 +34,24 @@ public class ChessBoard extends Board<Integer>
 	public static final int classicChessBoardDimension=8;
 
 	private final Map<Integer, ChessPiece> chessBoardMap = new HashMap<>();
+	
+	private final Map<ChessPieceColor, Set<Integer>> colorToLocationsMap = initializeColorToLocationsMap();
 
 	private final Map<ChessPieceColor, Integer> kingLocationMap = Map.of(ChessPieceColor.BLACK, convert_to_square_num(0,4),
 			ChessPieceColor.WHITE, convert_to_square_num(7,4));
 	
-	private final Collection<ChessPiece> pawnsThatCanEnPassant= new ArrayList<>();
+	//private List<ChessBoard> successors = new ArrayList<>();
 	private ChessPieceColor currentTurn = ChessPieceColor.WHITE;
+
+	private boolean currentPlayerInCheck=false;
+	
+	private Map<ChessPieceColor, Set<Integer>> initializeColorToLocationsMap() {
+		
+		Map<ChessPieceColor, Set<Integer>> result = new HashMap<>();
+		for(ChessPieceColor c : ChessPieceColor.values())
+			result.put(c, new HashSet<>());
+		return result;
+	}
 	
 	public boolean isValidMove(int r1, int c1, int r2, int c2)
 	{
@@ -63,6 +78,8 @@ public class ChessBoard extends Board<Integer>
 		return pieceAtCurrentPosition.isValidMove(r1, c1, r2, c2);
 	}
 
+	
+
 	//returns the desired String representation of the chessboard
 	public String toString()
 	{
@@ -71,11 +88,10 @@ public class ChessBoard extends Board<Integer>
 
 
 	/**
-	 * Method for retrieving a chess piece that is on the ChessBoard, at Point P
-	 * as a parameter.
+	 * Method for retrieving a chess piece that is on the ChessBoard, at a specified row and column
 	 *
-	 * @param p
-	 * @return piece at Point p
+	 * @param r the row, c the column 
+	 * @return piece
 	 */
 	public ChessPiece getPiece(int r, int c)
 	{
@@ -86,8 +102,6 @@ public class ChessBoard extends Board<Integer>
 	public void setPiece(int r, int c, ChessPiece piece)
 	{
 		int squareNum = ChessBoard.convert_to_square_num(r, c);
-		if(squareNum<0)
-			return;
 		chessBoardMap.put(squareNum, piece);
 	}
 
@@ -158,14 +172,7 @@ public class ChessBoard extends Board<Integer>
 	}
 
 
-	public boolean hasEnemyPiece(Point p, ChessPiece piece)
-	{
-		if(getPiece(p)==null)
-			return false;
-		if(getPiece(p).getType().equals(piece.getType()))
-			return false;
-		return true;
-	}
+	
 
 	/**
 	 * Checks if the move you just made puts your own king in check
@@ -176,34 +183,31 @@ public class ChessBoard extends Board<Integer>
 	 * @return true if your king is now in check
 	 * @return false otherwise
 	 */
-	public boolean kingIsInCheck( String turn, Point p1, Point p2)
+	public boolean kingIsInCheck(ChessPieceColor turn)
 	{
-		ChessBoard newBoard=ChessBoardFactory.createNewChessBoard(this,p1,p2);
-
-		Point kingLocation;
-		String enemyType;
-		if(turn.equals("White"))
+		int[] kingLocation = getKingLocation(turn);
+		
+		ChessPieceColor opponentColor = turn.getOtherColor();
+		
+		ChessPiece [] pieces = {new Pawn(this, turn), new King(this, turn, true), new Queen(this, turn), new Rook(this, turn), new Bishop(this, turn), new Knight(this, turn)};
+		
+		for(ChessPiece enemy : pieces)
 		{
-			kingLocation=newBoard.whiteKingLocation;
-			enemyType=ChessPieceTypes.black;
+			ArrayList<Integer> destinations = enemy.computeAttackingPositions(kingLocation[0], kingLocation[1]);
+			for(Integer position: destinations)
+			{
+				ChessPiece realPiece = chessBoardMap.get(position);
+				if(realPiece !=null && realPiece.getClass().equals(enemy.getClass()) && realPiece.getColor().equals(opponentColor))
+					return true;
+			}
 		}
-		else
-		{
-			kingLocation=newBoard.blackKingLocation;
-			enemyType=ChessPieceTypes.white;
-		}
-
-		if(newBoard.checkHasOccurred(kingLocation, enemyType))
-			return true;
-
-		return false;
+		
+		return false;	
 	}
 
-	public Point getKingLocation(String type)
+	public int [] getKingLocation(ChessPieceColor color)
 	{
-		if(type.equals(ChessPieceTypes.white))
-			return new Point(whiteKingLocation.getRow(),whiteKingLocation.getColumn());
-		return new Point(blackKingLocation.getRow(),blackKingLocation.getColumn());
+		return convert_square_num_to_coordinates(kingLocationMap.get(color));
 	}
 
 	@Override
@@ -215,27 +219,38 @@ public class ChessBoard extends Board<Integer>
 
 
 	@Override
-	public List<Integer> legalmoves() {
-		// TODO Auto-generated method stub
-		return null;
+	public List<Integer> legalmoves() 
+	{
+		Set<Integer> locationsOfMoveablePieces = colorToLocationsMap.get(currentTurn);
+		List<Integer> legalMoves = new ArrayList<>();
+		
+		for(Integer squareNum : locationsOfMoveablePieces)
+		{
+			//if this square is currently occupied by a chesspiece which is blocking the current player from being in check
+			//if(piecesPreventingCheck.contains(squareNum))
+				//continue;
+			
+			ChessPiece chessPiece = chessBoardMap.get(squareNum);
+			int[] coordinates = convert_square_num_to_coordinates(squareNum);
+			List<Integer> validDestinations = chessPiece.computeValidMoves(coordinates[0], coordinates[1]);
+			
+			List<Integer> validMoves = validDestinations.stream().map( to -> convert_square_nums_to_move(squareNum,to) ).collect( Collectors.toList() );
+			
+			legalMoves.addAll(validMoves);
+				
+		}
+		return legalMoves;
 	}
 
 	@Override
 	public void perform_move(Integer move) {
 		// TODO Auto-generated method stub
 
-		int squareNum = move%100;
-
-		ChessPiece pieceThatIsGoingToMove= chessBoardMap.remove(squareNum);
-
-		clearEnPassant();
-
-		squareNum = (move/100)%100;
-
-		chessBoardMap.put(squareNum, pieceThatIsGoingToMove);
-
-		char c=' ';
-		SpecialMoves.makeSpecialChanges(this, pieceThatIsGoingToMove, p1, p2, c);
+		int[] square_nums = convert_move_to_square_nums(move);
+		int from = square_nums[0];
+		int to = square_nums[1];
+		
+		performMove(from, to);
 	}
 
 	@Override
@@ -267,22 +282,23 @@ public class ChessBoard extends Board<Integer>
 		String [] result = new String[classicChessBoardDimension*classicChessBoardDimension];
 		for(int i =0;i<result.length;i++)
 			result[i] = "";
-		for(chessBoardMap.entrySet())
-		for(int r=0;r<classicChessBoardDimension;r++)
-		{
-			for(int c=0;c<classicChessBoardDimension;c++)
-			{
-
-				result[i] = chessBoard[r][c].
-			}
-		}
+		for(Map.Entry<Integer, ChessPiece> entry : chessBoardMap.entrySet())
+			result[entry.getKey()] = entry.getValue().toStateString();
+		
+		return result;
 	}
 
-
+	@Override
+	public int hashCode() {
+		String [] boardIdRep = chess_board_id_String();
+		
+	    return Arrays.hashCode(boardIdRep);
+	}
+	
 
 	public boolean equals(Object o)
 	{
-		if(!(o instanceof ChessBoard) || o==null)
+		if(!(o instanceof ChessBoard))
 			return false;
 
 		ChessBoard other = (ChessBoard)o;
@@ -290,7 +306,7 @@ public class ChessBoard extends Board<Integer>
 		return chessBoardMap.equals(other.chessBoardMap);
 	}
 
-	@Override
+	@Override 
 	public Integer getBestMove() 
 	{
 		MiniMax<Integer> ai = new MiniMax<>(this);
@@ -312,6 +328,38 @@ public class ChessBoard extends Board<Integer>
 	{
 		int square_num = convert_to_square_num(r,c);
 		kingLocationMap.put(color, square_num);
+	}
+	
+	public void performMove(int from, int to)
+	{
+		ChessPiece pieceThatIsGoingToMove= chessBoardMap.remove(from);
+
+		clearEnPassant();
+		
+		chessBoardMap.put(to, pieceThatIsGoingToMove);
+
+		int [] fromPosition = convert_square_num_to_coordinates(from), toPosition = convert_square_num_to_coordinates(to);
+		
+		SpecialMoves.makeSpecialChanges(this, pieceThatIsGoingToMove, fromPosition[0], fromPosition[1], toPosition[0],toPosition[1], Queen.class);
+	
+		changeTurn();
+	}
+	
+	private void changeTurn()
+	{
+		currentTurn = currentTurn.getOtherColor();
+	}
+	
+	public static int [] convert_move_to_square_nums(int move)
+	{
+		int [] result = {(move/100)%100, move%100};
+		return result;
+	}
+	
+	public static int convert_square_nums_to_move(int from, int to)
+	{
+		int result = from*100+to;
+		return result;
 	}
 	
 	public static int [] convert_square_num_to_coordinates(int square_num)

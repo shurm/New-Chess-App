@@ -4,7 +4,8 @@ import java.util.ArrayList;
 
 import chess.ChessBoard;
 
-public class King extends ChessPiece{
+public class King extends ChessPiece
+{
 	//Variable which tells if King has been moved before, because if it has then it cannot perform castling
     private boolean moved=false;
 
@@ -22,10 +23,15 @@ public class King extends ChessPiece{
 
     public King(ChessBoard board, ChessPieceColor type)
     {
-        super(board, type, "K");
+        this(board, type, false);
     }
 
-    private void tryToCastle(ArrayList<Point> newPoints,Point p1)
+    public King(ChessBoard board, ChessPieceColor type, boolean b) {
+    	super(board, type, "K");
+    	setMoved(b);
+	}
+    /*
+	private void tryToCastle(ArrayList<Point> newPoints,Point p1)
     {
         //if King has been moved before we cant castle
         if(hasBeenMoved())
@@ -119,9 +125,9 @@ public class King extends ChessPiece{
 
         return true;
     }
-
+*/
     @Override
-    public ArrayList<Integer> generatePoints(int r, int c)
+    public ArrayList<Integer> computeAttackingPositions(int r, int c)
     {
         ArrayList<Integer> newPoints = new ArrayList<>();
         
@@ -136,7 +142,7 @@ public class King extends ChessPiece{
 			for(int cDirection : directions)
 				ChessPiece.checkBoundsAndAdd(newPoints,  getBoard(), getColor(), r+rDirection, c+cDirection);
 		
-        tryToCastle(newPoints, p);
+        //tryToCastle(newPoints, p);
 
         return newPoints;
     }
@@ -144,8 +150,14 @@ public class King extends ChessPiece{
     
 	@Override
 	public ChessPiece createDuplicate(ChessBoard newBoard) {
-		 King king =new King(newBoard, getColor());
+		King king =new King(newBoard, getColor());
         king.moved=moved;
         return king;
 	}
+	
+	@Override
+	public String toStateString()
+    {
+    	 return toString()+booleanTag(moved);
+    }
 }

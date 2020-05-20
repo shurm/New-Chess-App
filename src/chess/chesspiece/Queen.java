@@ -12,7 +12,7 @@ public class Queen extends ChessPiece
     }
 
     @Override
-    public ArrayList<Integer> generatePoints(int r, int c)
+    public ArrayList<Integer> computeAttackingPositions(int r, int c)
     {
     	ArrayList<Integer> result = ChessPiece.generateVerticalAndHortionzalMoves(getBoard(), getColor(), r, c);
     	ArrayList<Integer> result2 = ChessPiece.generateDiagonalMoves(getBoard(), getColor(), r, c);

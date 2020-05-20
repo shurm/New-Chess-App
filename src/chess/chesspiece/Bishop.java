@@ -12,7 +12,7 @@ public class Bishop extends ChessPiece
     }
 
     @Override
-    public ArrayList<Integer> generatePoints(int r, int c)
+    public ArrayList<Integer> computeAttackingPositions(int r, int c)
     {
     	ArrayList<Integer> result = ChessPiece.generateDiagonalMoves(getBoard(), getColor(), r, c);
 		return result;

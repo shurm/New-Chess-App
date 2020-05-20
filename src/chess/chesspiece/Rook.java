@@ -23,7 +23,7 @@ public class Rook extends ChessPiece{
 
 
     @Override
-    public ArrayList<Integer> generatePoints(int r, int c)
+    public ArrayList<Integer> computeAttackingPositions(int r, int c)
     {
     	ArrayList<Integer> result = ChessPiece.generateVerticalAndHortionzalMoves(getBoard(), getColor(), r, c);
 		return result;
@@ -41,4 +41,10 @@ public class Rook extends ChessPiece{
 	public void setMoved(boolean b) {
 		moved = true;
 	}
+	
+	@Override
+    public String toStateString()
+    {
+    	 return toString()+booleanTag(moved);
+    }
 }

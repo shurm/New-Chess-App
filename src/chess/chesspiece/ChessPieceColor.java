@@ -14,4 +14,11 @@ public enum ChessPieceColor
 	public String getShorthand() {
 		return shorthand;
 	}	
+	
+	public ChessPieceColor getOtherColor()
+	{
+		ChessPieceColor[] allcolors = values();
+		
+		return allcolors[(this.ordinal()+1)%allcolors.length];
+	}
 }

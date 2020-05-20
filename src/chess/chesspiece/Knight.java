@@ -15,7 +15,7 @@ public class Knight extends ChessPiece
 
     //A knight can travel 1 square vertically and 2 squares horizontally or visa-versa
     @Override
-    public ArrayList<Integer> generatePoints(int r, int c)
+    public ArrayList<Integer> computeAttackingPositions(int r, int c)
     {
         ArrayList<Integer> newPoints= new ArrayList<>();
 
@@ -44,4 +44,6 @@ public class Knight extends ChessPiece
     {
         return new Knight(newBoard, getColor());
     }
+    
+   
 }

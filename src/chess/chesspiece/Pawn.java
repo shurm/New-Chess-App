@@ -4,7 +4,8 @@ import java.util.ArrayList;
 
 import chess.ChessBoard;
 
-public class Pawn extends ChessPiece{
+public class Pawn extends ChessPiece
+{
 
     //variable which states whether this Pawn may be taken via en passant
     private boolean en_passant=false;
@@ -26,71 +27,102 @@ public class Pawn extends ChessPiece{
     }
 
     @Override
-    public ArrayList<Integer> generatePoints(int r, int c)
+    public ArrayList<Integer> computeAttackingPositions(int r, int c)
     {
         ArrayList<Integer> newPoints=new ArrayList<>();
-        if(isBlack())
+        
+        int rowDelta = computeDirection();
+        
+        int [] array={-1,1};
+
+        int nextRow = r+rowDelta;
+        //diagonally takes enemy piece
+        for(int cDelta : array)
         {
-            pawnMoves(newPoints, p, 1, 1);
+        	int c1 = c+cDelta;
+        	ChessPiece chessPiece = getBoard().getPiece(nextRow, c1);
+            
+            if(chessPiece!=null && chessPiece.getColor()!=getColor())
+                newPoints.add(ChessBoard.convert_to_square_num(nextRow, c1));
         }
-        else
-        {
-            pawnMoves(newPoints, p, 6, -1);
-        }
+
+        
+       
         return newPoints;
     }
 
-
-    private void pawnMoves(ArrayList<Integer> newPoints, Point p, int startingRow,int rInc)
+    @Override
+    public ArrayList<Integer> computeValidMoves(int r, int c)
     {
-        moveStraight(newPoints,  p,  startingRow, rInc);
-
-        Point newPoint;
+    	ArrayList<Integer> result = computeAttackingPositions(r,c);
+    	
+    	int rowDelta = computeDirection();
+        moveStraight(result,  r, c, rowDelta);
+              
         int [] array={-1,1};
 
-        //diagonally takes enemy piece
-        for(int a=0;a<array.length;a++)
+        int nextRow = r+rowDelta;
+      //try en_passant
+        for(int cDelta : array)
         {
-            newPoint=new Point(p.getRow()+rInc,p.getColumn()+array[a]);
-            if(!getBoard().pointOutOfBounds(newPoint) && getBoard().hasEnemyPiece(newPoint,this))
-                newPoints.add(newPoint);
+        	int c1 = c+cDelta;
+        	ChessPiece empty = getBoard().getPiece(nextRow, c1);
+        	ChessPiece potentialPawn = getBoard().getPiece(r, c1);
+            if(empty!=null || !(potentialPawn instanceof Pawn) || potentialPawn.getColor()==getColor())
+                continue;
+            
+            if(((Pawn)(potentialPawn)).isEn_passant())
+            	result.add(ChessBoard.convert_to_square_num(nextRow, c1));
         }
-
-        //try en_passant
-        for(int a=0;a<array.length;a++)
-        {
-            Point p1=new Point(p.getRow(),p.getColumn()+array[a]);
-            Point p2=new Point(p.getRow()+rInc,p.getColumn()+array[a]);
-            if(!getBoard().pointOutOfBounds(p1) && getBoard().hasEnemyPiece(p1, this) && getBoard().getPiece(p1) instanceof Pawn && ((Pawn)getBoard().getPiece(p1)).isEn_passant())
-                newPoints.add(p2);
-        }
+		return result;
 
     }
+   
 
-    private void moveStraight(ArrayList<Integer> newPoints,Point p,int startingRow, int rInc )
-    {
-        Point newPoint;
+    private void moveStraight(ArrayList<Integer> newPoints,int r, int c, int rInc )
+    {   
+        int nextRow = r+rInc;
+        if(getBoard().getPiece(nextRow, c)!=null)
+        	return;
+        
+        newPoints.add(ChessBoard.convert_to_square_num(nextRow, c));
 
-        //try moving forward 1 square
-        newPoint=new Point(p.getRow()+rInc,p.getColumn());
-        if(getBoard().pointOutOfBounds(newPoint) || getBoard().objectIsOnChessBoard(newPoint))
-            return;
-
-        newPoints.add(newPoint);
-
+        int startingRow = computeStartingRow();
+        nextRow = r+2*rInc;
+        
         //try moving forward 2 squares
-        if(p.getRow()==startingRow)
-        {
-            newPoint=new Point(startingRow+2*rInc,p.getColumn());
+        if(r==startingRow && getBoard().getPiece(nextRow, c)!=null)
+        	newPoints.add(ChessBoard.convert_to_square_num(nextRow, c));
 
-            if(!getBoard().objectIsOnChessBoard(newPoint))
-                newPoints.add(newPoint);
-        }
     }
+    
     @Override
     public ChessPiece createDuplicate(ChessBoard newBoard) {
         Pawn pawn = new Pawn(newBoard, getColor());
         pawn.en_passant=this.en_passant;
         return pawn;
+    }
+    
+    private int computeStartingRow()
+    {
+    	//white = 6
+    	//black = 1
+    	int n = getColor().ordinal();
+    	
+    	return (-1*(ChessBoard.classicChessBoardDimension-1))*(n-1) + 1*(n-1) + 1*(n);
+    	
+    }
+    
+    private int computeDirection()
+    {
+    	int n = getColor().ordinal();
+    	
+    	return 2*n-1;
+    }
+    
+    @Override
+    public String toStateString()
+    {
+    	 return toString()+booleanTag(en_passant);
     }
 }
