@@ -25,6 +25,7 @@ public class ChessBoardStringify {
 		for(int c=0;c<ChessBoard.classicChessBoardDimension;c++)
 			result[ChessBoard.classicChessBoardDimension][c] = " "+(char)('a'+c);
 		
+		result[ChessBoard.classicChessBoardDimension][ChessBoard.classicChessBoardDimension] = "";
 
 		for(Map.Entry<Integer, ChessPiece> entry:board.boardEntrySet())
 		{

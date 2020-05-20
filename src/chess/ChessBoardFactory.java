@@ -30,6 +30,8 @@ public class ChessBoardFactory
         for(ChessPieceColor color: allcolors)
         	generatePiecesForAPlayer(newBoard, color);
 
+        newBoard.populateColorLocationsMap();
+        
         return newBoard;
     }
 
@@ -87,6 +89,6 @@ public class ChessBoardFactory
     
     private static int getStartingRow(ChessPieceColor color)
     {
-        return (color.ordinal()+1)%2*ChessBoard.classicChessBoardDimension-1;
+        return (color.getOtherColor().ordinal())*(ChessBoard.classicChessBoardDimension-1);
     }
 }

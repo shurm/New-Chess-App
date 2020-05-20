@@ -37,8 +37,7 @@ public class ChessBoard extends Board<Integer>
 	
 	private final Map<ChessPieceColor, Set<Integer>> colorToLocationsMap = initializeColorToLocationsMap();
 
-	private final Map<ChessPieceColor, Integer> kingLocationMap = Map.of(ChessPieceColor.BLACK, convert_to_square_num(0,4),
-			ChessPieceColor.WHITE, convert_to_square_num(7,4));
+	private final Map<ChessPieceColor, Integer> kingLocationMap = new HashMap<>();;
 	
 	private ChessPieceColor currentTurn = ChessPieceColor.WHITE;
 
@@ -53,6 +52,19 @@ public class ChessBoard extends Board<Integer>
 		return result;
 	}
 
+	
+	//so chessboard can only be instantiated by the ChessBoardFactory 
+	ChessBoard()
+	{
+		kingLocationMap.put(ChessPieceColor.BLACK, convert_to_square_num(0,4));
+		kingLocationMap.put(ChessPieceColor.WHITE, convert_to_square_num(7,4));
+	}
+	
+	void populateColorLocationsMap()
+	{
+		for(Map.Entry<Integer, ChessPiece> entry : chessBoardMap.entrySet())
+			colorToLocationsMap.get(entry.getValue().getColor()).add(entry.getKey());
+	}
 	
 	public boolean isValidMove(int r1, int c1, int r2, int c2)
 	{
@@ -100,6 +112,7 @@ public class ChessBoard extends Board<Integer>
 		return chessBoardMap.get(squareNum);
 	}
 
+	
 	public void setPiece(int r, int c, ChessPiece piece)
 	{
 		int squareNum = ChessBoard.convert_to_square_num(r, c);
@@ -369,33 +382,11 @@ public class ChessBoard extends Board<Integer>
 		currentTurn = currentTurn.getOtherColor();
 	}
 	
-	public static int [] convert_move_to_square_nums(int move)
+	public ChessPieceColor getCurrentPlayer()
 	{
-		int [] result = {(move/100)%100, move%100};
-		return result;
+		return currentTurn;
 	}
 	
-	public static int convert_square_nums_to_move(int from, int to)
-	{
-		int result = from*100+to;
-		return result;
-	}
-	
-	public static int [] convert_square_num_to_coordinates(int square_num)
-	{
-		int [] result = {square_num/classicChessBoardDimension, square_num%classicChessBoardDimension};
-		return result;
-	}
-	
-	public static int convert_to_square_num(int r, int c)
-	{
-		int largeNum = classicChessBoardDimension*classicChessBoardDimension;
-
-		int squareId = (r%classicChessBoardDimension)*classicChessBoardDimension + c%classicChessBoardDimension - Math.abs(c)/classicChessBoardDimension*largeNum 
-				- Math.abs(r)/classicChessBoardDimension*largeNum + ((int)Math.signum(r+1)-1)*largeNum + ((int)Math.signum(c+1)-1)*largeNum;
-		return squareId;
-	}
-
 	@Override
 	protected Integer getMove(Board<Integer> successor) 
 	{
@@ -423,5 +414,34 @@ public class ChessBoard extends Board<Integer>
 		}
 		return null;
 	}
+	
+	public static int [] convert_move_to_square_nums(int move)
+	{
+		int [] result = {(move/100)%100, move%100};
+		return result;
+	}
+	
+	public static int convert_square_nums_to_move(int from, int to)
+	{
+		int result = from*100+to;
+		return result;
+	}
+	
+	public static int [] convert_square_num_to_coordinates(int square_num)
+	{
+		int [] result = {square_num/classicChessBoardDimension, square_num%classicChessBoardDimension};
+		return result;
+	}
+	
+	public static int convert_to_square_num(int r, int c)
+	{
+		int largeNum = classicChessBoardDimension*classicChessBoardDimension;
+
+		int squareId = (r%classicChessBoardDimension)*classicChessBoardDimension + c%classicChessBoardDimension - Math.abs(c)/classicChessBoardDimension*largeNum 
+				- Math.abs(r)/classicChessBoardDimension*largeNum + ((int)Math.signum(r+1)-1)*largeNum + ((int)Math.signum(c+1)-1)*largeNum;
+		return squareId;
+	}
+
+	
 
 }
