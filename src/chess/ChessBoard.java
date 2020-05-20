@@ -1,6 +1,5 @@
 package chess;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -8,6 +7,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -40,10 +40,10 @@ public class ChessBoard extends Board<Integer>
 	private final Map<ChessPieceColor, Integer> kingLocationMap = Map.of(ChessPieceColor.BLACK, convert_to_square_num(0,4),
 			ChessPieceColor.WHITE, convert_to_square_num(7,4));
 	
-	//private List<ChessBoard> successors = new ArrayList<>();
 	private ChessPieceColor currentTurn = ChessPieceColor.WHITE;
 
-	private boolean currentPlayerInCheck=false;
+	private final Map<ChessPieceColor, Boolean> inCheckMap = new HashMap<>();
+
 	
 	private Map<ChessPieceColor, Set<Integer>> initializeColorToLocationsMap() {
 		
@@ -52,6 +52,7 @@ public class ChessBoard extends Board<Integer>
 			result.put(c, new HashSet<>());
 		return result;
 	}
+
 	
 	public boolean isValidMove(int r1, int c1, int r2, int c2)
 	{
@@ -103,6 +104,7 @@ public class ChessBoard extends Board<Integer>
 	{
 		int squareNum = ChessBoard.convert_to_square_num(r, c);
 		chessBoardMap.put(squareNum, piece);
+		
 	}
 
 
@@ -113,7 +115,15 @@ public class ChessBoard extends Board<Integer>
 	 */
 	private void clearEnPassant()
 	{
-		pawnsThatCanEnPassant.clear();
+		Set<Integer> locations = colorToLocationsMap.get(currentTurn);
+		for(int location : locations)
+		{
+			ChessPiece chesspiece = chessBoardMap.get(location);
+			if(chesspiece instanceof Pawn)
+			{
+				((Pawn)(chesspiece)).setEn_passant(false);
+			}
+		}
 	}
 
 	/**
@@ -125,16 +135,16 @@ public class ChessBoard extends Board<Integer>
 	 * @return true if statemate has occurred
 	 * @return false otherwise
 	 */
-	public boolean stalemateHasOccurred(Point king, String enemyType)
+	public boolean stalemateHasOccurred()
 	{
-		if(checkHasOccurred(king, enemyType))
+		boolean inCheck = kingIsInCheck(currentTurn);
+		if(inCheck)
 			return false;
-
-		if(BlockCheck.areAbleToBlockCheck(this,king, enemyType))
-			return false;
-
-		return true;
+		ArrayList<Board<Integer>> successors = successors();
+		return successors.isEmpty();
 	}
+
+	
 
 	/**
 	 * Method for checking whether or not checkmate has occurred
@@ -145,34 +155,15 @@ public class ChessBoard extends Board<Integer>
 	 * @return true if checkmate has occurred
 	 * @return false otherwise
 	 */
-	public boolean checkmateHasOccurred(Point king, String enemyType)
+	public boolean checkmateHasOccurred()
 	{
-		if(!checkHasOccurred(king, enemyType))
+		boolean inCheck = kingIsInCheck(currentTurn);
+		if(!inCheck)
 			return false;
-
-		if(BlockCheck.areAbleToBlockCheck(this,king, enemyType))
-			return false;
-
-		return true;
+		ArrayList<Board<Integer>> successors = successors();
+		return successors.isEmpty();
 	}
 
-
-	/**
-	 * Method for checking whether or not a check has occurred
-	 *
-	 *
-	 * @param king Position of the king that is in possible jeopardy
-	 * @param enemyType the type the enemy pieces
-	 * @return true if check has occurred
-	 * @return false otherwise
-	 */
-	public boolean checkHasOccurred(Point king, String enemyType)
-	{
-		return InCheck.areEnemiesAttackingPoint(this, enemyType,king);
-	}
-
-
-	
 
 	/**
 	 * Checks if the move you just made puts your own king in check
@@ -185,6 +176,10 @@ public class ChessBoard extends Board<Integer>
 	 */
 	public boolean kingIsInCheck(ChessPieceColor turn)
 	{
+		Boolean inCheck = inCheckMap.get(turn);
+		if(inCheck!=null)
+			return inCheck;
+		
 		int[] kingLocation = getKingLocation(turn);
 		
 		ChessPieceColor opponentColor = turn.getOtherColor();
@@ -198,10 +193,13 @@ public class ChessBoard extends Board<Integer>
 			{
 				ChessPiece realPiece = chessBoardMap.get(position);
 				if(realPiece !=null && realPiece.getClass().equals(enemy.getClass()) && realPiece.getColor().equals(opponentColor))
+				{
+					inCheckMap.put(turn, true);
 					return true;
+				}
 			}
 		}
-		
+		inCheckMap.put(turn, false);
 		return false;	
 	}
 
@@ -212,35 +210,10 @@ public class ChessBoard extends Board<Integer>
 
 	@Override
 	public boolean game_over() {
-		// TODO Auto-generated method stub
-		return false;
+		return checkmateHasOccurred() || stalemateHasOccurred();
 	}
 
 
-
-	@Override
-	public List<Integer> legalmoves() 
-	{
-		Set<Integer> locationsOfMoveablePieces = colorToLocationsMap.get(currentTurn);
-		List<Integer> legalMoves = new ArrayList<>();
-		
-		for(Integer squareNum : locationsOfMoveablePieces)
-		{
-			//if this square is currently occupied by a chesspiece which is blocking the current player from being in check
-			//if(piecesPreventingCheck.contains(squareNum))
-				//continue;
-			
-			ChessPiece chessPiece = chessBoardMap.get(squareNum);
-			int[] coordinates = convert_square_num_to_coordinates(squareNum);
-			List<Integer> validDestinations = chessPiece.computeValidMoves(coordinates[0], coordinates[1]);
-			
-			List<Integer> validMoves = validDestinations.stream().map( to -> convert_square_nums_to_move(squareNum,to) ).collect( Collectors.toList() );
-			
-			legalMoves.addAll(validMoves);
-				
-		}
-		return legalMoves;
-	}
 
 	@Override
 	public void perform_move(Integer move) {
@@ -260,6 +233,9 @@ public class ChessBoard extends Board<Integer>
 		for(Map.Entry<Integer, ChessPiece> entry: chessBoardMap.entrySet())
 			copy.chessBoardMap.put(entry.getKey(), entry.getValue().createDuplicate(copy));
 		
+		for(Entry<ChessPieceColor, Set<Integer>> entry: colorToLocationsMap.entrySet())
+			copy.colorToLocationsMap.get(entry.getKey()).addAll(entry.getValue());
+		
 		copy.kingLocationMap.putAll(kingLocationMap);
 		copy.currentTurn = currentTurn;
 		return copy;
@@ -277,14 +253,51 @@ public class ChessBoard extends Board<Integer>
 		return currentTurn.ordinal();
 	}
 
+	@Override
+	public ArrayList<Board<Integer>> recompute_successors() {
+		ArrayList<Board<Integer>> successors = new ArrayList<>();
+		List<Integer> legal_moves = legal_moves();
+		for(Integer legal_move : legal_moves)
+		{
+			Board<Integer> copy = copy();
+			copy.perform_move(legal_move);
+			
+			if(this.kingIsInCheck(ChessPieceColor.values()[this.get_current_turn()]))
+				continue;
+			
+			successors.add(copy);
+		}
+		
+		return successors;
+	}
+
+	@Override
+	protected List<Integer> legal_moves() {
+		Set<Integer> locationsOfMoveablePieces = colorToLocationsMap.get(currentTurn);
+		List<Integer> legalMoves = new ArrayList<>();
+		
+		for(Integer squareNum : locationsOfMoveablePieces)
+		{
+			ChessPiece chessPiece = chessBoardMap.get(squareNum);
+			int[] coordinates = convert_square_num_to_coordinates(squareNum);
+			List<Integer> validDestinations = chessPiece.computeValidMoves(coordinates[0], coordinates[1]);
+			
+			List<Integer> validMoves = validDestinations.stream().map( to -> convert_square_nums_to_move(squareNum,to) ).collect( Collectors.toList() );
+			
+			legalMoves.addAll(validMoves);	
+		}
+		return legalMoves;
+	}
+	
 	private String[] chess_board_id_String()
 	{
-		String [] result = new String[classicChessBoardDimension*classicChessBoardDimension];
+		String [] result = new String[classicChessBoardDimension*classicChessBoardDimension+1];
 		for(int i =0;i<result.length;i++)
 			result[i] = "";
 		for(Map.Entry<Integer, ChessPiece> entry : chessBoardMap.entrySet())
 			result[entry.getKey()] = entry.getValue().toStateString();
 		
+		result[result.length-1] = currentTurn.getShorthand();
 		return result;
 	}
 
@@ -303,7 +316,7 @@ public class ChessBoard extends Board<Integer>
 
 		ChessBoard other = (ChessBoard)o;
 
-		return chessBoardMap.equals(other.chessBoardMap);
+		return other.get_current_turn() == get_current_turn() && chessBoardMap.equals(other.chessBoardMap);
 	}
 
 	@Override 
@@ -330,19 +343,25 @@ public class ChessBoard extends Board<Integer>
 		kingLocationMap.put(color, square_num);
 	}
 	
-	public void performMove(int from, int to)
+	public void performMove(Integer from, Integer to)
 	{
+		//updates the locations
+		for(Collection<Integer> locationSet : colorToLocationsMap.values())
+			locationSet.remove(from);
+		colorToLocationsMap.get(currentTurn).add(to);
 		ChessPiece pieceThatIsGoingToMove= chessBoardMap.remove(from);
-
-		clearEnPassant();
-		
 		chessBoardMap.put(to, pieceThatIsGoingToMove);
 
+		
 		int [] fromPosition = convert_square_num_to_coordinates(from), toPosition = convert_square_num_to_coordinates(to);
 		
 		SpecialMoves.makeSpecialChanges(this, pieceThatIsGoingToMove, fromPosition[0], fromPosition[1], toPosition[0],toPosition[1], Queen.class);
 	
+		clearEnPassant();
+		
 		changeTurn();
+		
+		inCheckMap.clear();
 	}
 	
 	private void changeTurn()
@@ -376,5 +395,33 @@ public class ChessBoard extends Board<Integer>
 				- Math.abs(r)/classicChessBoardDimension*largeNum + ((int)Math.signum(r+1)-1)*largeNum + ((int)Math.signum(c+1)-1)*largeNum;
 		return squareId;
 	}
-	
+
+	@Override
+	protected Integer getMove(Board<Integer> successor) 
+	{
+		Set<Integer> locationsOfMoveablePieces = colorToLocationsMap.get(currentTurn);
+		
+		for(Integer squareNum : locationsOfMoveablePieces)
+		{
+			ChessPiece chessPiece = chessBoardMap.get(squareNum);
+			int[] coordinates = convert_square_num_to_coordinates(squareNum);
+			List<Integer> validDestinations = chessPiece.computeValidMoves(coordinates[0], coordinates[1]);
+			
+			List<Integer> validMoves = validDestinations.stream().map( to -> convert_square_nums_to_move(squareNum,to) ).collect( Collectors.toList() );
+			
+			for(Integer move : validMoves)
+			{
+				Board<Integer> copy = copy();
+				copy.perform_move(move);
+				
+				if(this.kingIsInCheck(ChessPieceColor.values()[this.get_current_turn()]))
+					continue;
+				
+				if(copy.equals(successor))
+					return move;
+			}
+		}
+		return null;
+	}
+
 }

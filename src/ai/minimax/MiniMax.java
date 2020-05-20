@@ -1,11 +1,6 @@
 package ai.minimax;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import chess.ChessBoard;
-
+import java.util.ArrayList;
 
 public class MiniMax<T> 
 {
@@ -24,10 +19,10 @@ public class MiniMax<T>
 		long starttime = System.currentTimeMillis();
 		MiniMaxNode<T> bestMove = new MiniMaxNode<>(0); 
 		int depth = 1;
-		Map<Board<T>,List<T>> bestMoves = new HashMap<>();
+		
 		while(true)
 		{
-			MiniMaxNode<T> result = alphaBetaMinimax(MIN, MAX, depth, board, starttime, bestMoves);
+			MiniMaxNode<T> result = alphaBetaMinimax(MIN, MAX, depth, board, starttime);
 			if(result==null)
 				break;
 			bestMove = result;
@@ -35,10 +30,11 @@ public class MiniMax<T>
 		}
 		
 		System.out.println("depth explored: "+depth);
-		return bestMove.move;
+		
+		return board.getMove(bestMove.move);
 	}
 
-	private MiniMaxNode<T> alphaBetaMinimax(int alpha, int beta, int depth, Board<T> current_board, long starttime, Map<Board<T>, List<T>> bestMoves)
+	private MiniMaxNode<T> alphaBetaMinimax(int alpha, int beta, int depth, Board<T> current_board, long starttime)
 	{
 		//times up stop searching
 		if((System.currentTimeMillis()-starttime)>=INTERVAL_TO_WAIT)
@@ -50,21 +46,15 @@ public class MiniMax<T>
 
 		int [] alpha_beta = {alpha, beta};
 
-		//avoids recomputing legal moves
-		List<T> legal_moves = bestMoves.get(current_board);
-		if(legal_moves!=null)
-			legal_moves = current_board.legalmoves();
-		
+
+		ArrayList<Board<T>> successors = current_board.successors();
 		
 		MiniMaxNode<T> bestMove = new MiniMaxNode<T>(new int[] {MAX,MIN}[current_board.get_current_turn()]);
 		
-		for(T legal_move : legal_moves)
+		for(Board<T> successor : successors)
 		{
 
-			Board<T> copy = current_board.copy();
-			copy.perform_move(legal_move);
-
-			MiniMaxNode<T> bestMoveReturned = alphaBetaMinimax(alpha, beta, depth-1, copy, starttime, bestMoves);
+			MiniMaxNode<T> bestMoveReturned = alphaBetaMinimax(alpha, beta, depth-1, successor, starttime);
 			if(bestMoveReturned==null)
 				return null;
 			
@@ -75,7 +65,7 @@ public class MiniMax<T>
 			if(bestVal!=bestMoveReturned.rating)
 			{
 				bestMove.rating = bestVal;
-				bestMove.move = legal_move;
+				bestMove.move = successor;
 			}
 
 			//Set alpha or beta
@@ -88,18 +78,18 @@ public class MiniMax<T>
 
 		}
 		//makes sure the best move gets tried first the next time around
-		int i = legal_moves.indexOf(bestMove.move);
-		legal_moves.set(i, legal_moves.get(0));
-		legal_moves.set(0, bestMove.move);
+		int i = successors.indexOf(bestMove.move);
+		successors.set(i, successors.get(0));
+		successors.set(0, bestMove.move);
 		
-		bestMoves.put(current_board, legal_moves);
+		
 		return bestMove;
 	}  
 	
 	public static class MiniMaxNode<T>
 	{
 		int rating;
-		T move;
+		Board<T> move;
 
 		public MiniMaxNode(int rating)
 		{
