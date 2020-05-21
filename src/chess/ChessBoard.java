@@ -78,17 +78,9 @@ public class ChessBoard extends Board<Integer>
 		if(pieceAtCurrentPosition == null )
 			return false;
 
-		//if white player tries to move a black piece or vice-versa
-		if(pieceAtCurrentPosition.getColor()!=currentTurn)
-			return false;
+		Integer move = ChessBoard.convert_square_nums_to_move(currentPosition, intendedPosition);
 
-		ChessPiece pieceAtIntendedPosition = chessBoardMap.get(intendedPosition);
-
-		//check if another one the player's pieces already occupies the intended position 
-		if(pieceAtIntendedPosition!=null && pieceAtIntendedPosition.getColor()==currentTurn)
-			return false;
-
-		return pieceAtCurrentPosition.isValidMove(r1, c1, r2, c2);
+		return legal_moves().contains(move);
 	}
 
 	

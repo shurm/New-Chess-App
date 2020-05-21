@@ -36,28 +36,7 @@ public abstract class ChessPiece {
     	return computeAttackingPositions(r, c);
     }
 
-    /**
-     * template method
-     *
-     * determines if this chess piece is able to move validly from point p1 to point p2
-     *
-     * @param p1
-     * @param p2
-     * @return true if this chess piece is able to move validly from point p1 to point p2
-     * @return false otherwise
-     */
-    public boolean isValidMove(int r1, int c1, int r2, int c2)
-    {
-        ArrayList<Integer> pointsPieceIsAbleToGoTo=this.computeAttackingPositions(r1, c1);
-
-        int targetSquareNum = ChessBoard.convert_to_square_num(r2, c2);
-        for(Integer validPosition : pointsPieceIsAbleToGoTo)
-        {
-            if(validPosition == targetSquareNum)
-                return true;
-        }
-        return false;
-    }
+    
 
     /**
      * abstract method that should be overridden by every class that extends EmptyChessPiece
