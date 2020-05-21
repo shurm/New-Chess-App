@@ -91,7 +91,7 @@ public class Pawn extends ChessPiece
         nextRow = r+2*rInc;
         
         //try moving forward 2 squares
-        if(r==startingRow && getBoard().getPiece(nextRow, c)!=null)
+        if(r==startingRow && getBoard().getPiece(nextRow, c)==null)
         	newPoints.add(ChessBoard.convert_to_square_num(nextRow, c));
 
     }

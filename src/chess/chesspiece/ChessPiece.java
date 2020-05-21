@@ -137,8 +137,6 @@ public abstract class ChessPiece {
 			if(!checkBoundsAndAdd(newPoints, board, color, r, c))
 				break;
 			
-			int squareLocation = ChessBoard.convert_to_square_num(r, c);
-			newPoints.add(squareLocation);
 		}
     }
 	
@@ -156,6 +154,7 @@ public abstract class ChessPiece {
 				newPoints.add(squareLocation);
 			return false;
 		}
+		newPoints.add(squareLocation);
 		return true;
 	}
 	
