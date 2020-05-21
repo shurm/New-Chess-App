@@ -229,7 +229,11 @@ public class ChessBoard extends Board<Integer>
 		int to = square_nums[1];
 		
 		performMove(from, to);
+		
 	}
+
+	
+
 
 	@Override
 	public Board<Integer> copy() {
@@ -248,8 +252,8 @@ public class ChessBoard extends Board<Integer>
 
 	@Override
 	public int evaluate(int depth) {
-		// TODO Auto-generated method stub
-		return 0;
+		
+		return ChessBoardEvaluator.evaluateBoard(this, depth);
 	}
 
 	@Override
@@ -261,13 +265,19 @@ public class ChessBoard extends Board<Integer>
 	@Override
 	public ArrayList<Board<Integer>> recompute_successors() {
 		ArrayList<Board<Integer>> successors = new ArrayList<>();
+		List<Integer> legal_moves1 = legal_moves();
+		if(!legal_moves1.isEmpty() && legal_moves1.get(0)==130)
+		{
+			legal_moves1.get(0);
+		}
 		List<Integer> legal_moves = legal_moves();
+		
 		for(Integer legal_move : legal_moves)
 		{
-			Board<Integer> copy = copy();
+			ChessBoard copy = (ChessBoard) copy();
 			copy.perform_move(legal_move);
 			
-			if(this.kingIsInCheck(ChessPieceColor.values()[this.get_current_turn()]))
+			if(copy.kingIsInCheck(ChessPieceColor.values()[this.get_current_turn()]))
 				continue;
 			
 			successors.add(copy);
@@ -351,22 +361,27 @@ public class ChessBoard extends Board<Integer>
 	public void performMove(Integer from, Integer to)
 	{
 		//updates the locations
-		for(Collection<Integer> locationSet : colorToLocationsMap.values())
-			locationSet.remove(from);
-		colorToLocationsMap.get(currentTurn).add(to);
-		ChessPiece pieceThatIsGoingToMove= chessBoardMap.remove(from);
-		chessBoardMap.put(to, pieceThatIsGoingToMove);
-
 		
+		ChessPiece pieceThatIsGoingToMove= chessBoardMap.get(from);
 		int [] fromPosition = convert_square_num_to_coordinates(from), toPosition = convert_square_num_to_coordinates(to);
 		
 		SpecialMoves.makeSpecialChanges(this, pieceThatIsGoingToMove, fromPosition[0], fromPosition[1], toPosition[0],toPosition[1], Queen.class);
 	
+		for(Collection<Integer> locationSet : colorToLocationsMap.values())
+			locationSet.remove(from);
+		colorToLocationsMap.get(currentTurn).add(to);
+		
+		ChessPiece pieceToMove = chessBoardMap.remove(from);
+		chessBoardMap.put(to, pieceToMove);
+
+		
 		clearEnPassant();
 		
 		changeTurn();
 		
 		inCheckMap.clear();
+		
+		resetSuccessors();
 	}
 	
 	private void changeTurn()
@@ -433,7 +448,5 @@ public class ChessBoard extends Board<Integer>
 				- Math.abs(r)/classicChessBoardDimension*largeNum + ((int)Math.signum(r+1)-1)*largeNum + ((int)Math.signum(c+1)-1)*largeNum;
 		return squareId;
 	}
-
-	
 
 }

@@ -25,6 +25,7 @@ public class MiniMax<T>
 			MiniMaxNode<T> result = alphaBetaMinimax(MIN, MAX, depth, board, starttime);
 			if(result==null)
 				break;
+			//System.out.println("depth explored: "+result.move);
 			bestMove = result;
 			depth++;
 		}
@@ -49,7 +50,7 @@ public class MiniMax<T>
 
 		ArrayList<Board<T>> successors = current_board.successors();
 		
-		MiniMaxNode<T> bestMove = new MiniMaxNode<T>(new int[] {MAX,MIN}[current_board.get_current_turn()]);
+		MiniMaxNode<T> bestMove = new MiniMaxNode<T>(new int[] {MIN, MAX}[current_board.get_current_turn()]);
 		
 		for(Board<T> successor : successors)
 		{
@@ -62,7 +63,7 @@ public class MiniMax<T>
 			MaxMinFunction function_to_use = max_and_min_functions[current_board.get_current_turn()];
 
 			int bestVal = function_to_use.operation(bestMove.rating, bestMoveReturned.rating);
-			if(bestVal!=bestMoveReturned.rating)
+			if(bestVal!=bestMove.rating)
 			{
 				bestMove.rating = bestVal;
 				bestMove.move = successor;

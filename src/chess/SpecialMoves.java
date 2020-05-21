@@ -76,6 +76,7 @@ public class SpecialMoves
 		public void change(ChessBoard board, ChessPiece pawn, int r1, int c1, int r2, int c2,
 				Class<? extends ChessPiece> pawnPromotionClass) {
 			//prepare for future en passant
+
 	        if(Math.abs(r2-r1)==2)
 	            ((Pawn)(pawn)).setEn_passant(true);
 	        

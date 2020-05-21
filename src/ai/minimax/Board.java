@@ -30,6 +30,9 @@ public abstract class Board<T>
     	return successors;
     }
 
+    protected void resetSuccessors() {
+    	successors = null;
+	}
 	public abstract ArrayList<Board<T>> recompute_successors();
 
 	protected abstract T getMove(Board<T> move);

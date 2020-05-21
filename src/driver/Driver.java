@@ -4,7 +4,6 @@ import java.util.Scanner;
 
 import chess.ChessBoard;
 import chess.ChessBoardFactory;
-import chess.chesspiece.ChessPieceColor;
 
 public class Driver {
 
@@ -17,6 +16,8 @@ public class Driver {
 		{
 			System.out.println(board.toString());
 			System.out.println(board.getCurrentPlayer().name()+" to move:");
+			
+			
 			
 			String input = keyboard.nextLine();
 			input = input.trim().toLowerCase();
@@ -32,6 +33,8 @@ public class Driver {
 			
 			board.performMove(from, to);
 			
+			Integer move = board.getBestMove();
+			board.perform_move(move);
 		}
 		keyboard.close();
 	}
