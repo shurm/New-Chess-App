@@ -41,9 +41,13 @@ public class ChessBoard extends Board<Integer>
 	
 	private ChessPieceColor currentTurn = ChessPieceColor.WHITE;
 
-	private final Map<ChessPieceColor, Boolean> inCheckMap = new HashMap<>();
+	private Map<ChessPieceColor, Boolean> inCheckMap = new HashMap<>();
 
 	
+	private Boolean checkmate = null;
+
+	private Boolean stalemate = null;
+
 	private Map<ChessPieceColor, Set<Integer>> initializeColorToLocationsMap() {
 		
 		Map<ChessPieceColor, Set<Integer>> result = new HashMap<>();
@@ -142,11 +146,18 @@ public class ChessBoard extends Board<Integer>
 	 */
 	public boolean stalemateHasOccurred()
 	{
+		if(stalemate!=null)
+			return stalemate;
+		
 		boolean inCheck = kingIsInCheck(currentTurn);
 		if(inCheck)
+		{
+			stalemate = false;
 			return false;
+		}
 		ArrayList<Board<Integer>> successors = successors();
-		return successors.isEmpty();
+		stalemate = successors.isEmpty();
+		return stalemate;
 	}
 
 	
@@ -162,11 +173,18 @@ public class ChessBoard extends Board<Integer>
 	 */
 	public boolean checkmateHasOccurred()
 	{
+		if(checkmate!=null)
+			return checkmate;
+		
 		boolean inCheck = kingIsInCheck(currentTurn);
 		if(!inCheck)
+		{
+			checkmate = false;
 			return false;
+		}
 		ArrayList<Board<Integer>> successors = successors();
-		return successors.isEmpty();
+		checkmate = successors.isEmpty();
+		return checkmate;
 	}
 
 
@@ -222,14 +240,28 @@ public class ChessBoard extends Board<Integer>
 
 	@Override
 	public void perform_move(Integer move) {
-		// TODO Auto-generated method stub
-
+		
 		int[] square_nums = convert_move_to_square_nums(move);
 		int from = square_nums[0];
 		int to = square_nums[1];
 		
-		performMove(from, to);
+		ChessPiece pieceThatIsGoingToMove= chessBoardMap.get(from);
+		int [] fromPosition = convert_square_num_to_coordinates(from), toPosition = convert_square_num_to_coordinates(to);
 		
+		SpecialMoves.makeSpecialChanges(this, pieceThatIsGoingToMove, fromPosition[0], fromPosition[1], toPosition[0],toPosition[1], Queen.class);
+	
+		for(Collection<Integer> locationSet : colorToLocationsMap.values())
+			locationSet.remove(from);
+		colorToLocationsMap.get(currentTurn).add(to);
+		
+		ChessPiece pieceToMove = chessBoardMap.remove(from);
+		chessBoardMap.put(to, pieceToMove);
+		
+		clearEnPassant();
+		
+		changeTurn();
+		
+
 	}
 
 	
@@ -251,8 +283,8 @@ public class ChessBoard extends Board<Integer>
 	}
 
 	@Override
-	public int evaluate(int depth) {
-		
+	public int evaluate(int depth) 
+	{
 		return ChessBoardEvaluator.evaluateBoard(this, depth);
 	}
 
@@ -265,11 +297,7 @@ public class ChessBoard extends Board<Integer>
 	@Override
 	public ArrayList<Board<Integer>> recompute_successors() {
 		ArrayList<Board<Integer>> successors = new ArrayList<>();
-		List<Integer> legal_moves1 = legal_moves();
-		if(!legal_moves1.isEmpty() && legal_moves1.get(0)==130)
-		{
-			legal_moves1.get(0);
-		}
+
 		List<Integer> legal_moves = legal_moves();
 		
 		for(Integer legal_move : legal_moves)
@@ -361,27 +389,27 @@ public class ChessBoard extends Board<Integer>
 	public void performMove(Integer from, Integer to)
 	{
 		//updates the locations
+		int move = convert_square_nums_to_move(from, to);
+		perform_move(move);
 		
-		ChessPiece pieceThatIsGoingToMove= chessBoardMap.get(from);
-		int [] fromPosition = convert_square_num_to_coordinates(from), toPosition = convert_square_num_to_coordinates(to);
-		
-		SpecialMoves.makeSpecialChanges(this, pieceThatIsGoingToMove, fromPosition[0], fromPosition[1], toPosition[0],toPosition[1], Queen.class);
-	
-		for(Collection<Integer> locationSet : colorToLocationsMap.values())
-			locationSet.remove(from);
-		colorToLocationsMap.get(currentTurn).add(to);
-		
-		ChessPiece pieceToMove = chessBoardMap.remove(from);
-		chessBoardMap.put(to, pieceToMove);
-
-		
-		clearEnPassant();
-		
-		changeTurn();
-		
-		inCheckMap.clear();
-		
-		resetSuccessors();
+		Board<Integer> successor = successorsContains(this);
+		if(successor==null)
+		{
+			resetSuccessors();
+			inCheckMap.clear();
+			setRating(null);
+			checkmate = null;
+			stalemate =  null;
+		}
+		else
+		{
+			ChessBoard s = (ChessBoard)successor;
+			setSuccessors(successor);
+			inCheckMap = s.inCheckMap;
+			setRating(s.getRating());
+			checkmate = s.checkmate;
+			stalemate =  s.stalemate;
+		}
 	}
 	
 	private void changeTurn()
@@ -448,5 +476,4 @@ public class ChessBoard extends Board<Integer>
 				- Math.abs(r)/classicChessBoardDimension*largeNum + ((int)Math.signum(r+1)-1)*largeNum + ((int)Math.signum(c+1)-1)*largeNum;
 		return squareId;
 	}
-
 }

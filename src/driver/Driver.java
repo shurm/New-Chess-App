@@ -34,7 +34,9 @@ public class Driver {
 			board.performMove(from, to);
 			
 			Integer move = board.getBestMove();
-			board.perform_move(move);
+			int [] moveParts = ChessBoard.convert_move_to_square_nums(move);
+			
+			board.performMove(moveParts[0],moveParts[1]);
 		}
 		keyboard.close();
 	}

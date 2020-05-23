@@ -1,12 +1,16 @@
 package ai.minimax;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
 public class MiniMax<T> 
 {
+	private static final int MAX_SUCCESSORS = 6;
 	private static final int MAX =1000, MIN =-1000;
 	private static final MaxMinFunction [] max_and_min_functions = {(a,b) -> Math.max(a,b), (a,b) -> Math.min(a,b)};
 
+	private static final Comparator [] COMPARATORS = {Board.DESCENDING_ORDER,Board.ASCENDING_ORDER};
 	private static final long INTERVAL_TO_WAIT = 1000;
 	
 	private Board<T> board;
@@ -16,13 +20,14 @@ public class MiniMax<T>
 
 	public T getBestMove()
 	{
+		
 		long starttime = System.currentTimeMillis();
-		MiniMaxNode<T> bestMove = new MiniMaxNode<>(0); 
+		Integer bestMove = null; 
 		int depth = 1;
 		
 		while(true)
 		{
-			MiniMaxNode<T> result = alphaBetaMinimax(MIN, MAX, depth, board, starttime);
+			Integer result = alphaBetaMinimax(MIN, MAX, depth, board, starttime);
 			if(result==null)
 				break;
 			//System.out.println("depth explored: "+result.move);
@@ -32,10 +37,10 @@ public class MiniMax<T>
 		
 		System.out.println("depth explored: "+depth);
 		
-		return board.getMove(bestMove.move);
+		return board.getMove(board.getSuccessors().get(0));
 	}
 
-	private MiniMaxNode<T> alphaBetaMinimax(int alpha, int beta, int depth, Board<T> current_board, long starttime)
+	private Integer alphaBetaMinimax(int alpha, int beta, int depth, Board<T> current_board, long starttime)
 	{
 		//times up stop searching
 		if((System.currentTimeMillis()-starttime)>=INTERVAL_TO_WAIT)
@@ -43,30 +48,33 @@ public class MiniMax<T>
 			
 		//hit a leaf node (evaluate the board)
 		if(depth == 0 || current_board.game_over()) 
-			return new MiniMaxNode<>(current_board.evaluate(depth));
+			return current_board.evaluate(depth);
+		
 
 		int [] alpha_beta = {alpha, beta};
 
 
 		ArrayList<Board<T>> successors = current_board.successors();
 		
-		MiniMaxNode<T> bestMove = new MiniMaxNode<T>(new int[] {MIN, MAX}[current_board.get_current_turn()]);
 		
-		for(Board<T> successor : successors)
+		int rating = new int[] {MIN, MAX}[current_board.get_current_turn()];
+		current_board.setRating(rating);
+		
+		int i;
+		for(i =0;i<successors.size() && beta > alpha;i++)
 		{
-
-			MiniMaxNode<T> bestMoveReturned = alphaBetaMinimax(alpha, beta, depth-1, successor, starttime);
+			Board<T> successor = successors.get(i);
+			Integer bestMoveReturned = alphaBetaMinimax(alpha, beta, depth-1, successor, starttime);
 			if(bestMoveReturned==null)
 				return null;
 			
-			
+			successor.setRating(bestMoveReturned);
 			MaxMinFunction function_to_use = max_and_min_functions[current_board.get_current_turn()];
 
-			int bestVal = function_to_use.operation(bestMove.rating, bestMoveReturned.rating);
-			if(bestVal!=bestMove.rating)
+			int bestVal = function_to_use.operation(current_board.getRating(), successor.getRating());
+			if(bestVal!=current_board.getRating())
 			{
-				bestMove.rating = bestVal;
-				bestMove.move = successor;
+				current_board.setRating(bestVal);
 			}
 
 			//Set alpha or beta
@@ -74,34 +82,29 @@ public class MiniMax<T>
 
 			alpha = alpha_beta[0];
 			beta = alpha_beta[1];
-			if(beta <= alpha)
-				break;
 
 		}
-		//makes sure the best move gets tried first the next time around
-		int i = successors.indexOf(bestMove.move);
-		successors.set(i, successors.get(0));
-		successors.set(0, bestMove.move);
+		
+		//remove successors that were pruned
+		i = successors.size() - i;
+		while (i>0)
+		{
+			successors.remove(successors.size()-1);
+			i--;
+		}
 		
 		
-		return bestMove;
+		Comparator c = COMPARATORS[current_board.get_current_turn()];
+		Collections.sort(successors, c);
+		
+		if(successors.size()>MAX_SUCCESSORS)
+			successors.subList(MAX_SUCCESSORS, successors.size()).clear();
+		
+		
+		return current_board.getRating();
 	}  
 	
-	public static class MiniMaxNode<T>
-	{
-		int rating;
-		Board<T> move;
-
-		public MiniMaxNode(int rating)
-		{
-			this.rating=rating;
-		}
-
-		public String toString()
-		{
-			return "{ rating: "+rating+", move: "+move.toString()+"}";
-		}
-	}
+	
 
 	public interface MaxMinFunction {
 		int operation(int a, int b); 
