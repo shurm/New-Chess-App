@@ -258,9 +258,8 @@ public class ChessBoard extends Board<Integer>
 		
 		changeTurn();
 	}
-
 	
-
+	
 
 	@Override
 	public Board<Integer> copy() {
