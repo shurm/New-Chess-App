@@ -84,7 +84,7 @@ public class ChessBoard extends Board<Integer>
 
 		Integer move = ChessBoard.convert_square_nums_to_move(currentPosition, intendedPosition);
 
-		return legal_moves().contains(move);
+		return pieceAtCurrentPosition.computeValidMoves(r1, c1).contains(move);
 	}
 
 	
