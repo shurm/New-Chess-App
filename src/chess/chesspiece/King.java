@@ -30,124 +30,84 @@ public class King extends ChessPiece
     	super(board, type, "K");
     	setMoved(b);
 	}
-    /*
-	private void tryToCastle(ArrayList<Point> newPoints,Point p1)
-    {
-        //if King has been moved before we cant castle
-        if(hasBeenMoved())
-            return;
-
-        if(this.isBlack())
-        {
-            //Log.v("tag","right rook");
-            //are we castling with Rook on the right side
-            if(areCastlingConditionsGood(new Point(0,7)))
-                castlingHelper(newPoints,p1,new Point(0,6), 1, ChessPieceTypes.white);
-
-           // Log.v("tag","left rook");
-            //are we castling with Rook on the left side
-            if(areCastlingConditionsGood(new Point(0,0)))
-                castlingHelper(newPoints,p1,new Point(0,2), -1, ChessPieceTypes.white);
-        }
-        else
-        {
-           // Log.v("tag","right rook");
-            //are we castling with Rook on the right side
-            if(areCastlingConditionsGood(new Point(7,7)))
-                castlingHelper(newPoints,p1,new Point(7,6), 1, ChessPieceTypes.black);
-
-           // Log.v("tag","left rook");
-            //are we castling with Rook on the left side
-            if(areCastlingConditionsGood(new Point(7,0)))
-                castlingHelper(newPoints,p1,new Point(7,2), -1, ChessPieceTypes.black);
-        }
-
-    }
-
-    private void castlingHelper(ArrayList<Point> newPoints,Point p1,Point p2, int inc, String enemyType)
-    {
-        if(!kingCrossingCheck(p1, p2,  inc, enemyType))
-            return;
-
-        if(emptySquaresCheck(p1,  inc))
-            newPoints.add(p2);
-    }
-
-    private boolean emptySquaresCheck(Point p1, int inc) {
-        int squaresInBetween;
-        if(inc==1)
-        {
-            squaresInBetween=2;
-        }
-        else
-        {
-            squaresInBetween=3;
-        }
-
-        //checks if the squares Between the King and the Rook are unoccupied
-        Point p=new Point(p1.getRow(),p1.getColumn()+inc);
-        for(int a=0;a<squaresInBetween;a++,p.setColumn(p.getColumn()+inc) )
-        {
-            if(getBoard().getPiece(p)!=null)
-            {
-                //.v("tag","There is a piece in between the rook and king");
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private boolean kingCrossingCheck(Point p1,Point p2, int inc, String enemyType)
-    {
-        //checks if the King every crosses a Point that is "in check"
-        for(Point p=new Point(p1.getRow(),p1.getColumn());true;p.setColumn(p.getColumn()+inc))
-        {
-            if(InCheck.areEnemiesAttackingPoint(getBoard(), enemyType, p))
-            {
-                //Log.v("tag","King crosses in check square.");
-                return false;
-            }
-            if(p.equals(p2))
-                break;
-        }
-        return true;
-    }
-
-    // if the Rook was moved before.
-    private boolean areCastlingConditionsGood(Point rookPosition)
-    {
-        Point rook=rookPosition;
-        if(getBoard().getPiece(rook)==null || !(getBoard().getPiece(rook) instanceof Rook)
-                || ((Rook)getBoard().getPiece(rook)).hasBeenMoved()) {
-            //Log.v("tag","Rook test failed");
-            return false;
-        }
-
-        return true;
-    }
-*/
+   
     @Override
     public ArrayList<Integer> computeAttackingPositions(int r, int c)
     {
         ArrayList<Integer> newPoints = new ArrayList<>();
         
+        //up and down
 		int[] directions = {1,-1};
 		for(int direction : directions)
 			ChessPiece.checkBoundsAndAdd(newPoints, getBoard(), getColor(), r+direction, c);
 		
+		//left and right
 		for(int direction : directions)
 			ChessPiece.checkBoundsAndAdd(newPoints, getBoard(), getColor(), r, c+direction);
 
+		//Diagonal
 		for(int rDirection : directions)
 			for(int cDirection : directions)
 				ChessPiece.checkBoundsAndAdd(newPoints,  getBoard(), getColor(), r+rDirection, c+cDirection);
 		
-        //tryToCastle(newPoints, p);
-
+		
         return newPoints;
     }
-   
+    @Override
+    public ArrayList<Integer> computeValidMoves(int r, int c)
+    {
+    	ArrayList<Integer> result = computeAttackingPositions(r,c);
+    	
+    	//if the king was moved before or if it is currently in check we cant castle
+    	if(moved || getBoard().kingIsInCheck(getColor()))
+    		return result;
+    	   	
+    	//try to castle on the left side
+    	if(passesCastlingConditions(r,c,0,-1))
+    		result.add(ChessBoard.convert_to_square_num(r, c-2));
+    	
+    	//try to castle on the right side
+    	if(passesCastlingConditions(r,c,ChessBoard.classicChessBoardDimension-1,1))
+    		result.add(ChessBoard.convert_to_square_num(r, c+2));
+    	
+        //tryToCastle(newPoints, p);
+
+		return result;
+
+    }
     
+	private boolean passesCastlingConditions(int kingRow, int kingCol, int rookCol, int direction) 
+	{
+		//checks if rook has been moved
+		ChessPiece possibleRook = getBoard().getPiece(kingRow, rookCol);
+		if(!(possibleRook instanceof Rook))
+			return false;
+		Rook rook = (Rook)(possibleRook);
+		if(rook.hasBeenMoved())
+			return false;
+		
+		//checks if the squares inbetween are empty
+		for(int c = kingCol+direction;c!=rookCol;c+=direction)
+			if(getBoard().getPiece(kingRow, c)!=null)
+				return false;
+		
+		//the squares the king passes over cannot be in check
+		int kingDestinationCol = kingCol+2*direction;
+		for(int c = kingCol+direction;c!=kingDestinationCol+direction;c+=direction)
+		{
+			ChessBoard copy = (ChessBoard) getBoard().copy();
+			ChessPiece king = copy.removePiece(kingRow, kingCol);
+			copy.setPiece(kingRow, c, king);
+			copy.setKingPosition(getColor(), kingRow, c);
+			
+			if(copy.kingIsInCheck(king.getColor()))
+				return false;
+		}
+			
+		
+		return true;
+	}
+	
 	@Override
 	public ChessPiece createDuplicate(ChessBoard newBoard) {
 		King king =new King(newBoard, getColor());

@@ -11,6 +11,9 @@ public class Driver {
 		
 		ChessBoard board = ChessBoardFactory.createNewChessBoard();
 		Scanner keyboard = new Scanner(System.in);
+		//board.removePiece(7, 1);
+		//board.removePiece(7, 2);
+		//board.removePiece(7, 3);
 		
 		while(!board.game_over())
 		{

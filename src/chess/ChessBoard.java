@@ -112,8 +112,8 @@ public class ChessBoard extends Board<Integer>
 	public void setPiece(int r, int c, ChessPiece piece)
 	{
 		int squareNum = ChessBoard.convert_to_square_num(r, c);
+		colorToLocationsMap.get(piece.getColor()).add(squareNum);
 		chessBoardMap.put(squareNum, piece);
-		
 	}
 
 
@@ -250,18 +250,13 @@ public class ChessBoard extends Board<Integer>
 		
 		SpecialMoves.makeSpecialChanges(this, pieceThatIsGoingToMove, fromPosition[0], fromPosition[1], toPosition[0],toPosition[1], Queen.class);
 	
-		for(Collection<Integer> locationSet : colorToLocationsMap.values())
-			locationSet.remove(from);
-		colorToLocationsMap.get(currentTurn).add(to);
-		
-		ChessPiece pieceToMove = chessBoardMap.remove(from);
-		chessBoardMap.put(to, pieceToMove);
+
+		ChessPiece pieceToMove = removePiece(fromPosition[0], fromPosition[1]);
+		setPiece(toPosition[0],toPosition[1], pieceToMove);
 		
 		clearEnPassant();
 		
 		changeTurn();
-		
-
 	}
 
 	
@@ -377,6 +372,9 @@ public class ChessBoard extends Board<Integer>
 	
 	public ChessPiece removePiece(int r, int c) {
 		int square_num = convert_to_square_num(r,c);
+		for(Collection<Integer> locationSet : colorToLocationsMap.values())
+			locationSet.remove(square_num);
+		
 		return chessBoardMap.remove(square_num);
 	}
 	

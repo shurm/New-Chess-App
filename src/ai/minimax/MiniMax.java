@@ -6,7 +6,9 @@ import java.util.Comparator;
 
 public class MiniMax<T> 
 {
-	private static final int MAX_SUCCESSORS = 6;
+	//maximum number of successors a board should have (limit the game tree and speed up search)
+	private static final int MAX_SUCCESSORS = 5;
+	
 	private static final int MAX =1000, MIN =-1000;
 	private static final MaxMinFunction [] max_and_min_functions = {(a,b) -> Math.max(a,b), (a,b) -> Math.min(a,b)};
 
